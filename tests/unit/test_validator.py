@@ -64,6 +64,38 @@ class TestJsonSchemaValidator:
         assert len(res.messages) == 1
         assert res.messages[0] == "any_file.csv:2: 'a' is not of type 'number'"
 
+    def test_check_missing_values(self, validator, raw_csv):
+        raw_csv.return_value = [
+            'col1,col2',
+            'a'
+        ]
+        res = validator.check(CsvFile('any_file.csv'))
+
+        assert not res.ok
+        assert all([
+            msg.startswith('any_file.csv')
+            for msg in res.messages
+        ])
+        assert len(res.messages) == 1
+        assert res.messages[0] == 'any_file.csv:2: Missing 1 column'
+
+    def test_correct_line_numbers(self, validator, raw_csv):
+        raw_csv.return_value = [
+            'col1,col2',
+            'a',
+            'a,1',
+            'a,a'
+        ]
+        res = validator.check(CsvFile('any_file.csv'))
+        assert not res.ok
+        assert all([
+            msg.startswith('any_file.csv')
+            for msg in res.messages
+        ])
+        assert len(res.messages) == 2
+        assert res.messages[0] == 'any_file.csv:2: Missing 1 column'
+        assert res.messages[1] == "any_file.csv:4: 'a' is not of type 'number'"
+
     def testerrors_for_deep_schema(self, raw_csv):
         raw_csv.return_value = [
             'col1,col2',

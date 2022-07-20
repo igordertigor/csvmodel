@@ -1,10 +1,11 @@
-from typing import Type, List, Dict, Optional, Any, Union, cast
+from typing import Type, List, Dict, Optional, Any, Union, cast, Tuple
 from abc import ABC, abstractmethod
 
 import json
 
 import jsonschema
 
+from .errors import ValidationError
 from .types import ValidationResult, SchemaSpec, SchemaSpecType
 from .csvfile import CsvFile
 from .errors import ConfigError
@@ -23,8 +24,8 @@ class Validator(ABC):
         pass
 
     @staticmethod
-    def prefix(messages: List[str], filename: str, lineno: int) -> List[str]:
-        return [f'{filename}:{lineno+1}: {msg}' for msg in messages]
+    def prefix(messages: List[Tuple[int, str]], filename: str) -> List[str]:
+        return [f'{filename}:{lineno+1}: {msg}' for lineno, msg in messages]
 
 
 MixedDict = Dict[str, Union[str, float]]
@@ -47,30 +48,31 @@ class JsonSchemaValidator(Validator):
 
     def check(self, infile: CsvFile) -> ValidationResult:
         ok: bool = True
-        messages: List[str] = []
+        messages: List[Tuple[int, str]] = []
         header: List[str]
 
         for i, content in enumerate(infile.iter_rows()):
             if i == 0:
                 header = content
             else:
-                msg = self._check_line(dict(zip(header, content)), i)
+                msg = self._check_line(dict(zip(header, content)))
                 if msg:
                     ok = False
-                    messages.append(msg)
+                    messages.append((i, msg))
 
         return ValidationResult(
             ok=ok,
-            messages=self.prefix(messages, infile.filename, i),
+            messages=self.prefix(messages, infile.filename),
         )
 
-    def _check_line(self, record: Dict[str, str], lineno: int) -> Optional[str]:
+    def _check_line(self, record: Dict[str, str]) -> Optional[str]:
         try:
             record_ = self._fix_numbers(record)
             jsonschema.validate(record_, self._schema)
             return None
+        except ValidationError as e:
+            return e.message
         except jsonschema.ValidationError as e:
-            print(dir(e))
             return e.message
         except Exception:
             raise
@@ -79,9 +81,12 @@ class JsonSchemaValidator(Validator):
         # There are only quite restricted schemata that are valid for csvs
         # Fix the string only dict here if possible
         record_: MixedDict = cast(MixedDict, record.copy())
+        missing = 0
         if 'properties' in self._schema:
             for varname, value in self._schema['properties'].items():
-                if 'type' in value:
+                if varname not in record:
+                    missing += 1
+                elif 'type' in value:
                     if value['type'] == 'number':
                         try:
                             record_[varname] = float(record[varname])
@@ -91,6 +96,8 @@ class JsonSchemaValidator(Validator):
                         record_[varname] = record[varname]
                     else:
                         raise ValueError('Schema too deep for csv files')
+        if missing:
+            raise ValidationError(f'Missing {missing} column{"s" if missing > 1 else ""}')
         return record_
 
 
