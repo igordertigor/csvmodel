@@ -30,3 +30,5 @@ twine upload dist/$SOURCEDIST dist/$BINDIST
 echo "*******************************************************"
 echo "* Now commit setup.cfg and tag the commit as v${VERSION}"
 echo "*******************************************************"
+
+rm setup.cfg_backup
