@@ -37,7 +37,7 @@ def test_successfully_parse_explcit_inline_schema():
 
 def test_separate_file_configs():
     config = Config(StringIO('\n'.join([
-        '[csvmodel.my_special_file]',
+        '[csvmodel:my_special_file]',
         'validator = pydantic',
         'schema = file:schema.py:MyModel',
         'separator = ;',
