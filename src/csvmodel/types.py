@@ -11,6 +11,7 @@ class ValidationResult(BaseModel):
 class SchemaSpecType(str, Enum):
     inline = 'inline'
     file = 'file'
+    module = 'module'
 
 
 class SchemaSpec(BaseModel):
@@ -27,6 +28,11 @@ class SchemaSpec(BaseModel):
         elif spec.startswith('inline:'):
             return cls(
                 type=SchemaSpecType.inline,
+                details=spec[7:],
+            )
+        elif spec.startswith('module:'):
+            return cls(
+                type=SchemaSpecType.module,
                 details=spec[7:],
             )
         else:

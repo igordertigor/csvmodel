@@ -1,9 +1,13 @@
-from typing import Type, List, Dict, Optional, Any, Union, cast, Tuple
+from typing import Type, List, Dict, Any, Union, cast, Tuple
+from types import ModuleType
 from abc import ABC, abstractmethod
 
 import json
-
 import jsonschema
+
+import importlib
+import importlib.util
+import pydantic
 
 from .errors import ValidationError
 from .types import ValidationResult, SchemaSpec, SchemaSpecType
@@ -19,8 +23,27 @@ class Validator(ABC):
     def from_schema(cls, schema: SchemaSpec) -> 'Validator':
         pass
 
-    @abstractmethod
     def check(self, infile: CsvFile) -> ValidationResult:
+        ok: bool = True
+        messages: List[Tuple[int, str]] = []
+        header: List[str]
+
+        for i, content in enumerate(infile.iter_rows()):
+            if i == 0:
+                header = content
+            else:
+                msg = self.check_line(dict(zip(header, content)))
+                if len(msg):
+                    ok = False
+                    messages.extend([(i, m) for m in msg])
+
+        return ValidationResult(
+            ok=ok,
+            messages=self.prefix(messages, infile.filename),
+        )
+
+    @abstractmethod
+    def check_line(self, record: Dict[str, str]) -> List[str]:
         pass
 
     @staticmethod
@@ -38,7 +61,7 @@ class JsonSchemaValidator(Validator):
         self._schema = schema
 
     @classmethod
-    def from_schema(cls, schema: SchemaSpec):
+    def from_schema(cls, schema: SchemaSpec) -> 'JsonSchemaValidator':
         if schema.type == SchemaSpecType.inline:
             return cls(json.loads(schema.details))
 
@@ -46,34 +69,20 @@ class JsonSchemaValidator(Validator):
             with open(schema.details) as f:
                 return cls(json.load(f))
 
-    def check(self, infile: CsvFile) -> ValidationResult:
-        ok: bool = True
-        messages: List[Tuple[int, str]] = []
-        header: List[str]
+        elif schema.type == SchemaSpecType.module:  # pragma: no cover
+            raise ValueError('Schema from module is not supported by jsonschema')
 
-        for i, content in enumerate(infile.iter_rows()):
-            if i == 0:
-                header = content
-            else:
-                msg = self._check_line(dict(zip(header, content)))
-                if msg:
-                    ok = False
-                    messages.append((i, msg))
+        raise ValueError('This should never happen')
 
-        return ValidationResult(
-            ok=ok,
-            messages=self.prefix(messages, infile.filename),
-        )
-
-    def _check_line(self, record: Dict[str, str]) -> Optional[str]:
+    def check_line(self, record: Dict[str, str]) -> List[str]:
         try:
             record_ = self._fix_numbers(record)
             jsonschema.validate(record_, self._schema)
-            return None
+            return []
         except ValidationError as e:
-            return e.message
+            return [e.message]
         except jsonschema.ValidationError as e:
-            return e.message
+            return [e.message]
         except Exception:
             raise
 
@@ -105,6 +114,53 @@ class JsonSchemaValidator(Validator):
         if missing:
             raise ValidationError(f'Missing {missing} column{"s" if missing > 1 else ""}')
         return record_
+
+
+class PydanticValidator(Validator):
+    name: str = 'pydantic'
+    _model: pydantic.BaseModel
+
+    def __init__(self, model: pydantic.BaseModel):
+        self._model = model
+
+    @classmethod
+    def from_schema(cls, schema: SchemaSpec) -> 'PydanticValidator':
+        if schema.type == SchemaSpecType.inline:
+            raise ValueError('Inline schema is not supported for pydantic')
+        elif schema.type == SchemaSpecType.file:
+            filename, classname = schema.details.split(':')
+            module = cls._import_module_from_filename(filename)
+            return cls(getattr(module, classname))
+
+        elif schema.type == SchemaSpecType.file:
+            modulename, classname = schema.details.split(':')
+            module = cls._import_module(modulename)
+            return cls(getattr(module, classname))
+
+        raise ValueError('This should never happen')
+
+    def check_line(self, record: Dict[str, str]) -> List[str]:
+        try:
+            self._model(**record)
+            return []
+        except pydantic.ValidationError as e:
+            e
+            return []
+
+    @staticmethod
+    def _import_module(name: str) -> ModuleType:
+        return importlib.import_module(name)
+
+    @staticmethod
+    def _import_module_from_filename(filename: str):
+        spec = importlib.util.spec_from_file_location(filename)
+        if spec is None:
+            raise ValueError(f'Failed to import schema from {filename}')
+        module = importlib.util.module_from_spec(spec)
+        if spec.loader is None:
+            raise ValueError(f'Failed to import schema from {filename}')
+        spec.loader.exec_module(module)
+        return module
 
 
 def get_validator(name: str, schema: SchemaSpec) -> Validator:
