@@ -9,7 +9,7 @@ This tests generally the use with validating a csv file using a jsonschema. To d
   Tina,Tina123@company.com,80000
   Alfred,Alfred@home.com,60000
 
-We want to validate this data against a jsonschema. Jsonschema only provides relatively coars validation, but it ensures for example, that all columns are entered and that numeric columns actually contain numbers.
+We want to validate this data against a jsonschema. Jsonschema only provides relatively coarse validation, but it ensures for example, that all columns are entered and that numeric columns actually contain numbers.
   $ echo '{"type": "object", "properties": {"Employee": {"type": "string"}, "Email": {"type": "string"}, "Salary": {"type": "number"}}}' > schema.json
 
 Now we want to validate our data against this schema:
