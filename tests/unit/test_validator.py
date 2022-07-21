@@ -2,7 +2,7 @@ import pytest
 from unittest import mock
 
 import os
-from pydantic import BaseModel
+from pydantic import BaseModel, root_validator
 import tempfile
 
 from csvmodel import errors
@@ -243,3 +243,17 @@ class TestPydanticValidator:
         assert res.messages == [
             'any_file.csv:2: Issue in column col2: field required'
         ]
+
+    def test_root_validator(self, raw_csv):
+
+        class Model(BaseModel):
+            col1: int
+            col2: int
+
+            @root_validator(pre=False)
+            def only_one_nonzero(cls, values):
+                col1 = int(values.get('col1'))
+                col2 = int(values.get('col2'))
+                if col1*col2 != 0:
+                    raise ValueError('Either col1 or col2 should be 0')
+                return values
