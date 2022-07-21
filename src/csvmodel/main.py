@@ -33,8 +33,8 @@ def main():
 
     exit_status = 0
     for filename in args['<filename>']:
-        validator = get_validator(config.validator, config.schema)
-        result = validator.check(CsvFile(filename, config.separator))
+        validator = get_validator(config.validator(filename), config.schema(filename))
+        result = validator.check(CsvFile(filename, config.separator(filename)))
         if not result.ok:
             print('\n'.join(result.messages))
             exit_status = 1
