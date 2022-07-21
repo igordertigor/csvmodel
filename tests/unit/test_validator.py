@@ -1,10 +1,12 @@
 import pytest
 from unittest import mock
 
+from pydantic import BaseModel
+
 from csvmodel import errors
 from csvmodel.types import SchemaSpec, ValidationResult
 from csvmodel.csvfile import CsvFile
-from csvmodel.validator import get_validator, JsonSchemaValidator
+from csvmodel.validator import get_validator, JsonSchemaValidator, PydanticValidator
 
 
 @pytest.fixture
@@ -116,3 +118,35 @@ class TestJsonSchemaValidator:
         })
         with pytest.raises(ValueError):
             validator.check(CsvFile('any_file.csv'))
+
+
+class TestPydanticValidator:
+    @pytest.fixture
+    def model(self):
+
+        class Data(BaseModel):
+            col1: str
+            col2: int
+
+        return Data
+
+    def test_ok_data(self, model, raw_csv):
+        raw_csv.return_value = [
+            'col1,col2',
+            'a,1',
+        ]
+        validator = PydanticValidator(model)
+        res = validator.check(CsvFile('any_file.csv'))
+        assert res.ok
+
+    def test_with_single_violation(self, model, raw_csv):
+        raw_csv.return_value = [
+            'col1,col2',
+            'a,a',
+        ]
+        validator = PydanticValidator(model)
+        res = validator.check(CsvFile('any_file.csv'))
+        assert not res.ok
+        assert res.messages == [
+            'any_file.csv:2: Issue in column col2: value is not a valid integer'
+        ]

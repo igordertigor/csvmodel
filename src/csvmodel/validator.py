@@ -144,8 +144,11 @@ class PydanticValidator(Validator):
             self._model(**record)
             return []
         except pydantic.ValidationError as e:
-            e
-            return []
+            out: List[str] = []
+            for issue in e.errors():
+                colnames = ','.join(issue["loc"])
+                out.append(f'Issue in column {colnames}: {issue["msg"]}')
+            return out
 
     @staticmethod
     def _import_module(name: str) -> ModuleType:
