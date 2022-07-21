@@ -14,13 +14,16 @@ pip install csvmodel
 In this getting started guide, commands that you type are prefixed by a `$` sign, output is shown as is.
 Let's create a csv file:
 
+```
   $ echo "Employee,Email,Salary"               > employees.csv
   $ echo "Fred,fred@company.com,50000"        >> employees.csv
   $ echo "Tina,Tina123@company.com,80k"       >> employees.csv
   $ echo "Alfred,Alfred_at_home.com,60000"    >> employees.csv
+```
 
 We want to validate this csv file against the following json schema:
 
+```
   $ echo '{'                                        > schema.json
   $ echo '  "type": "object",'                     >> schema.json
   $ echo '  "properties": {'                       >> schema.json
@@ -32,32 +35,39 @@ We want to validate this csv file against the following json schema:
   $ echo '    "Salary": {"type": "number"}'        >> schema.json
   $ echo '  }'                                     >> schema.json
   $ echo '}'                                       >> schema.json
+```
 
 We can do so by using csvmodel like this:
 
+```
   $ csvmodel --json-schema=schema.json employees.csv
   employees.csv:3: '80k' is not of type 'number'
   employees.csv:4: 'Alfred_at_home.com' does not match '^[a-z0-9.]+@[a-z0-9]+[.][a-z]{2,6}'
   [1]
+```
 
 This very quickly points us to the two issues with this file.
 Imagine having to find these (in particular for a larger file) after you noticed that [pandas](https://pandas.pydata.org) made your "Salary" column have type "object".
 
 Alternatively, you can specify your data expectations in the form of a pydantic model. Let's try that out now:
 
+```
   $ echo 'from pydantic import BaseModel, EmailStr'   > model.py
   $ echo ''                                          >> model.py
   $ echo 'class Employee(BaseModel):'                >> model.py
   $ echo '    Employee: str'                         >> model.py
   $ echo '    Email: EmailStr'                       >> model.py
   $ echo '    Salary: float'                         >> model.py
+```
 
 Again, we can get errors like this:
 
+```
   $ csvmodel --pydantic-model="model.py:Employee" employees.csv
   employees.csv:3: Issue in column Salary: value is not a valid float
   employees.csv:4: Issue in column Email: value is not a valid email address
   [1]
+```
 
 Again, we quickly get pointed to the issues in the csv file.
 
