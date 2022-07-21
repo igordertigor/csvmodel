@@ -92,10 +92,16 @@ class JsonSchemaValidator(Validator):
                             record_[varname] = float(record[varname])
                         except Exception:
                             record_[varname] = record[varname]
+                    elif value['type'] == 'integer':
+                        try:
+                            record_[varname] = int(record[varname])
+                        except Exception:
+                            record_[varname] = record[varname]
                     elif value['type'] == 'string':
                         record_[varname] = record[varname]
                     else:
                         raise ValueError('Schema too deep for csv files')
+
         if missing:
             raise ValidationError(f'Missing {missing} column{"s" if missing > 1 else ""}')
         return record_
