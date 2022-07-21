@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source publish.env
+
 set -xe
 
 cp setup.cfg setup.cfg_backup
