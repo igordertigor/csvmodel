@@ -4,10 +4,15 @@ Usage:
 
 Options:
     -c <configfile>,--config=<configfile>
-        Config file to read
+        Config file to read [Default: csvmodel.ini]
+    -s <jsonschema>,--json-schema=<jsonschema>
+        Set the default validator to jsonschema with a schema read from the
+        file specified as argument.
 """
 from docopt import docopt
+import os
 from sys import exit
+from io import StringIO
 from .validator import get_validator
 from .csvfile import CsvFile
 from .config import Config
@@ -15,8 +20,16 @@ from .config import Config
 
 def main():
     args = docopt(__doc__)
-    with open(args['--config']) as f:
-        config = Config(f)
+    if os.path.exists(args['--config']):
+        with open(args['--config']) as f:
+            config = Config(f)
+    else:
+        config = Config(StringIO())
+    if args['--json-schema']:
+        config.add_default_options(
+            validator='jsonschema',
+            schema=f'file:{args["--json-schema"]}',
+        )
 
     exit_status = 0
     for filename in args['<filename>']:

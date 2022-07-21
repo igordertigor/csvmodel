@@ -13,6 +13,9 @@ class Config:
         }
         self.parser.read_file(cfgfile)
 
+    def add_default_options(self, **kwargs: str):
+        self.parser.read_dict({'csvmodel': kwargs})
+
     def validator(self, filename: str) -> str:
         return self._get_or_create_section(f'csvmodel.{filename}').get('validator')
 
