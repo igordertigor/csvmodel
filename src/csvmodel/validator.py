@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 import json
 import jsonschema
 
+import random
 import importlib
 import importlib.util
 import pydantic
@@ -125,7 +126,7 @@ class PydanticValidator(Validator):
 
     @classmethod
     def from_schema(cls, schema: SchemaSpec) -> 'PydanticValidator':
-        if schema.type == SchemaSpecType.inline:
+        if schema.type == SchemaSpecType.inline:  # pragma: no cover
             raise ValueError('Inline schema is not supported for pydantic')
         elif schema.type == SchemaSpecType.file:
             filename, classname = schema.details.split(':')
@@ -156,7 +157,8 @@ class PydanticValidator(Validator):
 
     @staticmethod
     def _import_module_from_filename(filename: str):
-        spec = importlib.util.spec_from_file_location(filename)
+        module_name = f'csvmodel.schema_{random.randint(1, 100000)}'
+        spec = importlib.util.spec_from_file_location(module_name, filename)
         if spec is None:
             raise ValueError(f'Failed to import schema from {filename}')
         module = importlib.util.module_from_spec(spec)
