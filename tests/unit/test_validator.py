@@ -130,6 +130,16 @@ class TestPydanticValidator:
 
         return Data
 
+    @pytest.fixture
+    def model2(self):
+
+        class Data(BaseModel):
+            col1: str
+            col2: int
+            col3: float
+
+        return Data
+
     def test_ok_data(self, model, raw_csv):
         raw_csv.return_value = [
             'col1,col2',
@@ -149,4 +159,17 @@ class TestPydanticValidator:
         assert not res.ok
         assert res.messages == [
             'any_file.csv:2: Issue in column col2: value is not a valid integer'
+        ]
+
+    def test_with_multiple_violations(self, model2, raw_csv):
+        raw_csv.return_value = [
+            'col1,col2,col3',
+            'a,1.1,a',
+        ]
+        validator = PydanticValidator(model2)
+        res = validator.check(CsvFile('any_file.csv'))
+        assert not res.ok
+        assert res.messages == [
+            'any_file.csv:2: Issue in column col2: value is not a valid integer',
+            'any_file.csv:2: Issue in column col3: value is not a valid float'
         ]
