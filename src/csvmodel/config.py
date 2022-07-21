@@ -17,17 +17,18 @@ class Config:
         self.parser.read_dict({'csvmodel': kwargs})
 
     def validator(self, filename: str) -> str:
-        return self._get_or_create_section(f'csvmodel.{filename}').get('validator')
+        return self._get_or_create_section(filename).get('validator')
 
     def schema(self, filename: str) -> SchemaSpec:
         return SchemaSpec.from_string(
-            self._get_or_create_section(f'csvmodel.{filename}').get('schema')
+            self._get_or_create_section(filename).get('schema')
         )
 
     def separator(self, filename: str) -> str:
-        return self._get_or_create_section(f'csvmodel.{filename}').get('separator')
+        return self._get_or_create_section(filename).get('separator')
 
-    def _get_or_create_section(self, name: str) -> SectionProxy:
-        if name not in self.parser:
-            self.parser.add_section(name)
-        return self.parser[name]
+    def _get_or_create_section(self, filename: str) -> SectionProxy:
+        secname = f'csvmodel:{filename}'
+        if secname not in self.parser:
+            self.parser.add_section(secname)
+        return self.parser[secname]
