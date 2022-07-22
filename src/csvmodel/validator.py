@@ -91,11 +91,10 @@ class JsonSchemaValidator(Validator):
         # There are only quite restricted schemata that are valid for csvs
         # Fix the string only dict here if possible
         record_: MixedDict = cast(MixedDict, record.copy())
-        missing = 0
         if 'properties' in self._schema:
             for varname, value in self._schema['properties'].items():
                 if varname not in record:
-                    missing += 1
+                    continue
                 elif 'type' in value:
                     if value['type'] == 'number':
                         try:
@@ -112,8 +111,6 @@ class JsonSchemaValidator(Validator):
                     else:
                         raise ValueError('Schema too deep for csv files')
 
-        if missing:
-            raise ValidationError(f'Missing {missing} column{"s" if missing > 1 else ""}')
         return record_
 
 
