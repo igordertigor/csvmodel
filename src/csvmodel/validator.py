@@ -81,8 +81,6 @@ class JsonSchemaValidator(Validator):
             record_ = self._fix_numbers(record)
             jsonschema.validate(record_, self._schema)
             return []
-        except ValidationError as e:
-            return [e.message]
         except jsonschema.ValidationError as e:
             return [e.message]
         except Exception:
