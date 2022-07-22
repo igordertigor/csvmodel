@@ -3,7 +3,6 @@ class ConfigError(Exception):
     pass
 
 
-class ValidationError(Exception):
-    """Something went wrong when we validated record"""
-    def __init__(self, message):
-        self.message = message
+class NoSchemaError(Exception):
+    """The desired schema was not found"""
+    pass

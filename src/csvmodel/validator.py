@@ -5,12 +5,13 @@ from abc import ABC, abstractmethod
 import json
 import jsonschema
 
+import os
 import random
 import importlib
 import importlib.util
 import pydantic
 
-from .errors import ValidationError
+from .errors import NoSchemaError
 from .types import ValidationResult, SchemaSpec, SchemaSpecType
 from .csvfile import CsvFile
 from .errors import ConfigError
@@ -126,16 +127,19 @@ class PydanticValidator(Validator):
         if schema.type == SchemaSpecType.inline:  # pragma: no cover
             raise ValueError('Inline schema is not supported for pydantic')
         elif schema.type == SchemaSpecType.file:
-            filename, classname = schema.details.split(':')
-            module = cls._import_module_from_filename(filename)
-            return cls(getattr(module, classname))
+            origin, classname = schema.details.split(':')
+            module = cls._import_module_from_filename(origin)
 
-        elif schema.type == SchemaSpecType.file:
-            modulename, classname = schema.details.split(':')
-            module = cls._import_module(modulename)
-            return cls(getattr(module, classname))
+        elif schema.type == SchemaSpecType.module:
+            origin, classname = schema.details.split(':')
+            module = cls._import_module(origin)
 
-        raise ValueError('This should never happen')
+        try:
+            model = getattr(module, classname)
+        except AttributeError:
+            raise NoSchemaError(f'No class called {classname} in {origin}')
+
+        return cls(model)
 
     def check_line(self, record: Dict[str, str]) -> List[str]:
         try:
@@ -155,12 +159,14 @@ class PydanticValidator(Validator):
     @staticmethod
     def _import_module_from_filename(filename: str):
         module_name = f'csvmodel.schema_{random.randint(1, 100000)}'
+        if not os.path.exists(filename):
+            raise NoSchemaError(f'No schema file {filename} found')
         spec = importlib.util.spec_from_file_location(module_name, filename)
-        if spec is None:
-            raise ValueError(f'Failed to import schema from {filename}')
+        if spec is None:  # pragma: no cover
+            raise NoSchemaError(f'Failed to import schema from {filename}')
         module = importlib.util.module_from_spec(spec)
-        if spec.loader is None:
-            raise ValueError(f'Failed to import schema from {filename}')
+        if spec.loader is None:  # pragma: no cover
+            raise NoSchemaError(f'Failed to import schema from {filename}')
         spec.loader.exec_module(module)
         return module
 
