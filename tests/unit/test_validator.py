@@ -42,7 +42,8 @@ class TestJsonSchemaValidator:
             'properties': {
                 'col1': {'type': 'string'},
                 'col2': {'type': 'number'},
-            }
+            },
+            'required': ['col1', 'col2'],
         })
 
     @pytest.fixture
@@ -52,7 +53,8 @@ class TestJsonSchemaValidator:
             'properties': {
                 'col1': {'type': 'number'},
                 'col2': {'type': 'integer'},
-            }
+            },
+            'required': ['col1', 'col2'],
         })
 
     def test_check_ok_file_gives_no_error(self, validator, raw_csv):
@@ -91,7 +93,7 @@ class TestJsonSchemaValidator:
             for msg in res.messages
         ])
         assert len(res.messages) == 1
-        assert res.messages[0] == 'any_file.csv:2: Missing 1 column'
+        assert res.messages[0] == "any_file.csv:2: 'col2' is a required property"
 
     def test_check_integer_works(self, validator2, raw_csv):
         raw_csv.return_value = [
@@ -119,7 +121,7 @@ class TestJsonSchemaValidator:
             for msg in res.messages
         ])
         assert len(res.messages) == 2
-        assert res.messages[0] == 'any_file.csv:2: Missing 1 column'
+        assert res.messages[0] == "any_file.csv:2: 'col2' is a required property"
         assert res.messages[1] == "any_file.csv:4: 'a' is not of type 'number'"
 
     def testerrors_for_deep_schema(self, raw_csv):
