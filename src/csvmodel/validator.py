@@ -150,7 +150,12 @@ class PydanticValidator(Validator):
                 out.append(f'Issue in column {colnames}: {issue["msg"]}')
             return out
         except TypeError as e:
-            return [e.args[0].lstrip('__init__() ')]
+            message = e.args[0]
+            if message.startswith(self._model.__name__):
+                message = message[len(self._model.__name__)+1:]
+            if message.startswith('__init__() '):
+                message = message[len('__init__() '):]
+            return [message]
 
     @staticmethod
     def _import_module(name: str) -> ModuleType:
