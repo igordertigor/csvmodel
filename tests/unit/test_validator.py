@@ -259,3 +259,56 @@ class TestPydanticValidator:
                 if col1*col2 != 0:
                     raise ValueError('Either col1 or col2 should be 0')
                 return values
+
+        raw_csv.return_value = [
+            'col1,col2',
+            '1,1',
+            '3,0',
+        ]
+
+        validator = PydanticValidator(Model)
+        res = validator.check(CsvFile('any_file.csv'))
+
+        assert not res.ok
+        assert res.messages == [
+            'any_file.csv:2: Issue in column __root__: Either col1 or col2 should be 0',
+        ]
+
+    def test_validator_from_module(self, raw_csv):
+        validator = PydanticValidator.from_schema(
+            SchemaSpec(
+                type='module',
+                details='csvmodel.testing:ExampleModel',
+            )
+        )
+
+        raw_csv.return_value = [
+            'col1,col2,col3',
+            '1,a,3.2',
+            '3.3,a,b',
+        ]
+
+        res = validator.check(CsvFile('any_file.csv'))
+        assert not res.ok
+        assert res.messages == [
+            'any_file.csv:3: Issue in column col1: value is not a valid integer',
+            'any_file.csv:3: Issue in column col3: value is not a valid float',
+        ]
+
+    def test_validator_from_nonexistant_file(self):
+        with pytest.raises(errors.NoSchemaError):
+            PydanticValidator.from_schema(
+                SchemaSpec(
+                    type='file',
+                    details='non_existant_file.py:Model',
+                )
+            )
+
+    def test_nonexistant_model(self):
+        with pytest.raises(errors.NoSchemaError):
+            PydanticValidator.from_schema(
+                SchemaSpec(
+                    type='module',
+                    details='csvmodel.testing:DoesNotExist',
+                )
+            )
