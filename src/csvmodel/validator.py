@@ -74,7 +74,7 @@ class JsonSchemaValidator(Validator):
         elif schema.type == SchemaSpecType.module:  # pragma: no cover
             raise ValueError('Schema from module is not supported by jsonschema')
 
-        raise ValueError('This should never happen')
+        raise ValueError('This should never happen')  # pragma: no cover
 
     def check_line(self, record: Dict[str, str]) -> List[str]:
         try:
