@@ -224,6 +224,7 @@ class TestPydanticValidator:
             'col1,col2,col3',
             'a,1,1',
             'a,1.1,a',
+            'a,1',
         ]
 
         res = validator.check(CsvFile('any_file.csv'))
@@ -232,6 +233,7 @@ class TestPydanticValidator:
         assert res.messages == [
             'any_file.csv:3: Issue in column col2: value is not a valid integer',
             'any_file.csv:3: Issue in column col3: value is not a valid float',
+            'any_file.csv:4: Issue in column col3: field required',
         ]
 
     def test_missing_field(self, model, raw_csv):
@@ -312,3 +314,40 @@ class TestPydanticValidator:
                     details='csvmodel.testing:DoesNotExist',
                 )
             )
+
+    def test_pydantic_dataclasses(self, raw_csv):
+        with tempfile.TemporaryDirectory() as tdir:
+            fname = os.path.join(tdir, 'model.py')
+            with open(fname, 'w') as f:
+                f.write('\n'.join([
+                    'from pydantic.dataclasses import dataclass',
+                    '',
+                    '@dataclass',
+                    'class Model:',
+                    '    col1: str',
+                    '    col2: int',
+                    '    col3: float',
+                ]))
+
+            validator = PydanticValidator.from_schema(
+                SchemaSpec(
+                    type='file',
+                    details=':'.join([fname, 'Model'])
+                )
+            )
+
+        raw_csv.return_value = [
+            'col1,col2,col3',
+            'a,1,1',
+            'a,1.1,a',
+            'a,1',
+        ]
+
+        res = validator.check(CsvFile('any_file.csv'))
+
+        assert not res.ok
+        assert res.messages == [
+            'any_file.csv:3: Issue in column col2: value is not a valid integer',
+            'any_file.csv:3: Issue in column col3: value is not a valid float',
+            "any_file.csv:4: missing 1 required positional argument: 'col3'",
+        ]
