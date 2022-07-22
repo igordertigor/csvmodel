@@ -151,7 +151,7 @@ class PydanticValidator(Validator):
             return out
         except TypeError as e:
             message = e.args[0]
-            if message.startswith(self._model.__name__):
+            if message.startswith(self._model.__name__):  # pragma: no cover
                 message = message[len(self._model.__name__)+1:]
             if message.startswith('__init__() '):
                 message = message[len('__init__() '):]
