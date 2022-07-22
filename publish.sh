@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source publish.env
-
 set -xe
 
 cp setup.cfg setup.cfg_backup
@@ -27,7 +25,7 @@ python -m build
 
 twine check dist/$SOURCEDIST dist/$BINDIST
 
-twine upload dist/$SOURCEDIST dist/$BINDIST
+twine upload --verbose dist/$SOURCEDIST dist/$BINDIST
 
 echo "*******************************************************"
 echo "* Now commit setup.cfg and tag the commit as v${VERSION}"
