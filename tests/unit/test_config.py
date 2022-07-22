@@ -58,3 +58,10 @@ def test_separate_file_configs():
     )
     assert config.validator('my_special_file') == 'pydantic'
     assert config.separator('my_special_file') == ';'
+
+
+def test_default_options_can_be_set_in_isolation():
+    config = Config(StringIO())
+    assert config.validator('any_file') == 'jsonschema'
+    config.add_default_options(validator='pydantic')
+    assert config.validator('any_file') == 'pydantic'
