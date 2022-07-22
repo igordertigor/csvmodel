@@ -224,6 +224,7 @@ class TestPydanticValidator:
             'col1,col2,col3',
             'a,1,1',
             'a,1.1,a',
+            'a,1',
         ]
 
         res = validator.check(CsvFile('any_file.csv'))
@@ -232,6 +233,7 @@ class TestPydanticValidator:
         assert res.messages == [
             'any_file.csv:3: Issue in column col2: value is not a valid integer',
             'any_file.csv:3: Issue in column col3: value is not a valid float',
+            'any_file.csv:4: Issue in column col3: field required',
         ]
 
     def test_missing_field(self, model, raw_csv):
@@ -338,6 +340,7 @@ class TestPydanticValidator:
             'col1,col2,col3',
             'a,1,1',
             'a,1.1,a',
+            'a,1',
         ]
 
         res = validator.check(CsvFile('any_file.csv'))
@@ -346,4 +349,5 @@ class TestPydanticValidator:
         assert res.messages == [
             'any_file.csv:3: Issue in column col2: value is not a valid integer',
             'any_file.csv:3: Issue in column col3: value is not a valid float',
+            "any_file.csv:4: missing 1 required positional argument: 'col3'",
         ]

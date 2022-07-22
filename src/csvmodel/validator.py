@@ -149,6 +149,8 @@ class PydanticValidator(Validator):
                 colnames = ','.join(issue["loc"])
                 out.append(f'Issue in column {colnames}: {issue["msg"]}')
             return out
+        except TypeError as e:
+            return [e.args[0].lstrip('__init__() ')]
 
     @staticmethod
     def _import_module(name: str) -> ModuleType:
