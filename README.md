@@ -33,7 +33,8 @@ We want to validate this csv file against the following json schema:
   $ echo '      "pattern": "^[a-z0-9.]+@[a-z0-9]+[.][a-z]{2,6}"'   >> schema.json
   $ echo '    },'                                                  >> schema.json
   $ echo '    "Salary": {"type": "number"}'                        >> schema.json
-  $ echo '  }'                                                     >> schema.json
+  $ echo '  },'                                                    >> schema.json
+  $ echo '  "required": ["Employee", "Email", "Salary"]'           >> schema.json
   $ echo '}'                                                       >> schema.json
 ```
 
