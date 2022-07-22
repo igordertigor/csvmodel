@@ -10,7 +10,7 @@ This tests generally the use with validating a csv file using a jsonschema. To d
   Alfred,Alfred@home.com,60000
 
 We want to validate this data against a jsonschema. Jsonschema only provides relatively coarse validation, but it ensures for example, that all columns are entered and that numeric columns actually contain numbers.
-  $ echo '{"type": "object", "properties": {"Employee": {"type": "string"}, "Email": {"type": "string"}, "Salary": {"type": "number"}}}' > schema.json
+  $ echo '{"type": "object", "properties": {"Employee": {"type": "string"}, "Email": {"type": "string"}, "Salary": {"type": "number"}}, "required": ["Employee", "Email", "Salary"]}' > schema.json
 
 Now we want to validate our data against this schema:
   $ csvmodel --json-schema=schema.json employees.csv
@@ -48,5 +48,5 @@ We add some more lines to our csv files, some valid, some invalid
 Now we have two different errors: On line 5, we still have the invalid salary from Jimmy, but on line 7, we forgot the email for Carla.
   $ csvmodel employees.csv
   employees.csv:5: '15k' is not of type 'number'
-  employees.csv:7: Missing 1 column
+  employees.csv:7: 'Salary' is a required property
   [1]

@@ -24,17 +24,18 @@ Let's create a csv file:
 We want to validate this csv file against the following json schema:
 
 ```
-  $ echo '{'                                        > schema.json
-  $ echo '  "type": "object",'                     >> schema.json
-  $ echo '  "properties": {'                       >> schema.json
-  $ echo '    "Employee": {"type": "string"},'     >> schema.json
-  $ echo '    "Email": {'                          >> schema.json
-  $ echo '      "type": "string",'                 >> schema.json
-  $ echo '      "pattern": "^[a-z0-9.]+@[a-z0-9]+[.][a-z]{2,6}"' >> schema.json
-  $ echo '    },'                                  >> schema.json
-  $ echo '    "Salary": {"type": "number"}'        >> schema.json
-  $ echo '  }'                                     >> schema.json
-  $ echo '}'                                       >> schema.json
+  $ echo '{'                                                        > schema.json
+  $ echo '  "type": "object",'                                     >> schema.json
+  $ echo '  "properties": {'                                       >> schema.json
+  $ echo '    "Employee": {"type": "string"},'                     >> schema.json
+  $ echo '    "Email": {'                                          >> schema.json
+  $ echo '      "type": "string",'                                 >> schema.json
+  $ echo '      "pattern": "^[a-z0-9.]+@[a-z0-9]+[.][a-z]{2,6}"'   >> schema.json
+  $ echo '    },'                                                  >> schema.json
+  $ echo '    "Salary": {"type": "number"}'                        >> schema.json
+  $ echo '  },'                                                    >> schema.json
+  $ echo '  "required": ["Employee", "Email", "Salary"]'           >> schema.json
+  $ echo '}'                                                       >> schema.json
 ```
 
 We can do so by using csvmodel like this:
