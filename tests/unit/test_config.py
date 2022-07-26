@@ -1,8 +1,9 @@
+from unittest import mock
 from io import StringIO
 
 from csvmodel.types import SchemaSpec, SchemaSpecType
 
-from csvmodel.config import Config
+from csvmodel.config import Config, find_config_file
 
 
 def test_default_parses_schema_correctly():
@@ -65,3 +66,24 @@ def test_default_options_can_be_set_in_isolation():
     assert config.validator('any_file') == 'jsonschema'
     config.add_default_options(validator='pydantic')
     assert config.validator('any_file') == 'pydantic'
+
+
+class TestFindConfigFile:
+    def test_explicit(self):
+        assert find_config_file('any_file') == 'any_file'
+
+    def test_csvmodel_exists(self):
+        with mock.patch('csvmodel.config.os.path.exists') as m:
+            m.side_effect = [True, False, False]
+            assert find_config_file(None) == 'csvmodel.ini'
+
+    def test_csvmodel_does_not_exist(self):
+        with mock.patch('csvmodel.config.os.path.exists') as m:
+            m.side_effect = [False, True, False]
+            assert find_config_file(None) == 'tox.ini'
+
+    def test_no_file_found(self):
+        with mock.patch('csvmodel.config.os.path.exists') as m:
+            m.return_value = False
+
+            assert find_config_file(None) is None
