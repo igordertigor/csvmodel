@@ -65,3 +65,16 @@ def test_default_options_can_be_set_in_isolation():
     assert config.validator('any_file') == 'jsonschema'
     config.add_default_options(validator='pydantic')
     assert config.validator('any_file') == 'pydantic'
+
+
+def test_infinite_line_limit():
+    config = Config(StringIO())
+    assert config.line_limit('any_file') > 1_000_000_000_000
+
+
+def test_finite_line_limit():
+    config = Config(StringIO('\n'.join([
+        '[csvmodel]',
+        'line-limit = 20',
+    ])))
+    assert config.line_limit('any_file') == 20
