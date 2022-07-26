@@ -4,7 +4,7 @@ Usage:
 
 Options:
     -c <configfile>,--config=<configfile>
-        Config file to read [Default: csvmodel.ini]
+        Config file to read
     -j <jsonschema>,--json-schema=<jsonschema>
         Set the default validator to jsonschema with a schema read from the
         file specified as argument.
@@ -14,21 +14,21 @@ Options:
         model name.
 """
 from docopt import docopt
-import os
 from sys import exit
-from io import StringIO
 from .validator import get_validator
 from .csvfile import CsvFile
-from .config import Config
+from .config import Config, find_config_file
 
 
 def main():
     args = docopt(__doc__)
-    if os.path.exists(args['--config']):
-        with open(args['--config']) as f:
-            config = Config(f)
+    cfgfile_name = find_config_file(args['--config'])
+    if cfgfile_name is None:
+        config = Config()
     else:
-        config = Config(StringIO())
+        with open(cfgfile_name) as f:
+            config = Config(f)
+
     if args['--json-schema'] and args['--pydantic-model']:
         raise ValueError('Only one of --json-schema or --pydantic-model is valid')
     elif args['--json-schema']:
