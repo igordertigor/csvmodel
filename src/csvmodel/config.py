@@ -10,6 +10,7 @@ class Config:
             'validator': 'jsonschema',
             'schema': '{"type": "object"}',
             'separator': ',',
+            'line-limit': 'infinite',
         }
         self.parser.read_file(cfgfile)
 
@@ -26,6 +27,15 @@ class Config:
 
     def separator(self, filename: str) -> str:
         return self._get_or_create_section(filename).get('separator')
+
+    def line_limit(self, filename: str) -> int:
+        val = self._get_or_create_section(filename).get('line-limit')
+        if val.lower().startswith('inf'):
+            # This should practically be infinite, we're going to crash before
+            # we get there
+            return 1_000_000_000_000_000
+        else:
+            return int(val)
 
     def _get_or_create_section(self, filename: str) -> SectionProxy:
         secname = f'csvmodel:{filename}'

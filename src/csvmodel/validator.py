@@ -17,12 +17,16 @@ from .csvfile import CsvFile
 from .errors import ConfigError
 
 
+INF_INT = 1_000_000_000_000_000
+
+
 class Validator(ABC):
     name: str
+    line_limit: int
 
     @classmethod
     @abstractmethod
-    def from_schema(cls, schema: SchemaSpec) -> 'Validator':
+    def from_schema(cls, schema: SchemaSpec, line_limit: int = INF_INT) -> 'Validator':
         pass
 
     def check(self, infile: CsvFile) -> ValidationResult:
@@ -33,6 +37,8 @@ class Validator(ABC):
         for i, content in enumerate(infile.iter_rows()):
             if i == 0:
                 header = content
+            elif i >= self.line_limit:
+                break
             else:
                 msg = self.check_line(dict(zip(header, content)))
                 if len(msg):
@@ -58,18 +64,23 @@ MixedDict = Dict[str, Union[str, float]]
 
 class JsonSchemaValidator(Validator):
     name: str = 'jsonschema'
+    line_limit: int
 
-    def __init__(self, schema: Dict[str, Any]):
+    def __init__(self, schema: Dict[str, Any], line_limit: int):
         self._schema = schema
+        self.line_limit = line_limit
 
     @classmethod
-    def from_schema(cls, schema: SchemaSpec) -> 'JsonSchemaValidator':
+    def from_schema(cls,
+                    schema: SchemaSpec,
+                    line_limit: int = INF_INT,
+                    ) -> 'JsonSchemaValidator':
         if schema.type == SchemaSpecType.inline:
-            return cls(json.loads(schema.details))
+            return cls(json.loads(schema.details), line_limit)
 
         elif schema.type == SchemaSpecType.file:  # pragma: no cover
             with open(schema.details) as f:
-                return cls(json.load(f))
+                return cls(json.load(f), line_limit)
 
         elif schema.type == SchemaSpecType.module:  # pragma: no cover
             raise ValueError('Schema from module is not supported by jsonschema')
@@ -115,13 +126,18 @@ class JsonSchemaValidator(Validator):
 
 class PydanticValidator(Validator):
     name: str = 'pydantic'
+    line_limit: int
     _model: pydantic.BaseModel
 
-    def __init__(self, model: pydantic.BaseModel):
+    def __init__(self, model: pydantic.BaseModel, line_limit: int):
         self._model = model
+        self.line_limit = line_limit
 
     @classmethod
-    def from_schema(cls, schema: SchemaSpec) -> 'PydanticValidator':
+    def from_schema(cls,
+                    schema: SchemaSpec,
+                    line_limit: int = INF_INT,
+                    ) -> 'PydanticValidator':
         if schema.type == SchemaSpecType.inline:  # pragma: no cover
             raise ValueError('Inline schema is not supported for pydantic')
         elif schema.type == SchemaSpecType.file:
@@ -137,7 +153,7 @@ class PydanticValidator(Validator):
         except AttributeError:
             raise NoSchemaError(f'No class called {classname} in {origin}')
 
-        return cls(model)
+        return cls(model, line_limit)
 
     def check_line(self, record: Dict[str, str]) -> List[str]:
         try:
@@ -176,9 +192,9 @@ class PydanticValidator(Validator):
         return module
 
 
-def get_validator(name: str, schema: SchemaSpec) -> Validator:
+def get_validator(name: str, schema: SchemaSpec, line_limit: int = INF_INT) -> Validator:
     item: Type[Validator]
     for item in Validator.__subclasses__():  # type: ignore
         if item.name.lower() == name:
-            return item.from_schema(schema)  # type: ignore
+            return item.from_schema(schema, line_limit)  # type: ignore
     raise ConfigError(f'No validator by the name {name}')

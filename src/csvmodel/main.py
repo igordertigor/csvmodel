@@ -44,7 +44,11 @@ def main():
 
     exit_status = 0
     for filename in args['<filename>']:
-        validator = get_validator(config.validator(filename), config.schema(filename))
+        validator = get_validator(
+            config.validator(filename),
+            config.schema(filename),
+            config.line_limit(filename),
+        )
         result = validator.check(CsvFile(filename, config.separator(filename)))
         if not result.ok:
             print('\n'.join(result.messages))

@@ -37,25 +37,31 @@ def raw_csv():
 class TestJsonSchemaValidator:
     @pytest.fixture
     def validator(self):
-        return JsonSchemaValidator({
-            'type': 'object',
-            'properties': {
-                'col1': {'type': 'string'},
-                'col2': {'type': 'number'},
+        return JsonSchemaValidator(
+            {
+                'type': 'object',
+                'properties': {
+                    'col1': {'type': 'string'},
+                    'col2': {'type': 'number'},
+                },
+                'required': ['col1', 'col2'],
             },
-            'required': ['col1', 'col2'],
-        })
+            line_limit=1000,
+        )
 
     @pytest.fixture
     def validator2(self):
-        return JsonSchemaValidator({
-            'type': 'object',
-            'properties': {
-                'col1': {'type': 'number'},
-                'col2': {'type': 'integer'},
+        return JsonSchemaValidator(
+            {
+                'type': 'object',
+                'properties': {
+                    'col1': {'type': 'number'},
+                    'col2': {'type': 'integer'},
+                },
+                'required': ['col1', 'col2'],
             },
-            'required': ['col1', 'col2'],
-        })
+            line_limit=1000,
+        )
 
     def test_check_ok_file_gives_no_error(self, validator, raw_csv):
         raw_csv.return_value = [
@@ -129,19 +135,22 @@ class TestJsonSchemaValidator:
             'col1,col2',
             'a,1',
         ]
-        validator = JsonSchemaValidator({
-            'type': 'object',
-            'properties': {
-                'col1': {'type': 'string'},
-                'col2': {
-                    'type': 'object',
-                    'properties': {
-                        'a': {'type': 'string'},
-                        'b': {'type': 'number'},
-                     }
+        validator = JsonSchemaValidator(
+            {
+                'type': 'object',
+                'properties': {
+                    'col1': {'type': 'string'},
+                    'col2': {
+                        'type': 'object',
+                        'properties': {
+                            'a': {'type': 'string'},
+                            'b': {'type': 'number'},
+                         }
+                    }
                 }
-            }
-        })
+            },
+            line_limit=1000,
+        )
         with pytest.raises(ValueError):
             validator.check(CsvFile('any_file.csv'))
 
@@ -171,16 +180,28 @@ class TestPydanticValidator:
             'col1,col2',
             'a,1',
         ]
-        validator = PydanticValidator(model)
+        validator = PydanticValidator(model, line_limit=1000)
         res = validator.check(CsvFile('any_file.csv'))
         assert res.ok
+
+    def test_with_line_limit(self, model, raw_csv):
+        raw_csv.return_value = ['col1,col2'] + ['a,1']*19 + ['a,a']
+        validator = PydanticValidator(model, line_limit=20)
+        res = validator.check(CsvFile('any_file.csv'))
+        assert res.ok
+
+    def test_with_line_limit_failure(self, model, raw_csv):
+        raw_csv.return_value = ['col1,col2'] + ['a,1']*18 + ['a,a']
+        validator = PydanticValidator(model, line_limit=20)
+        res = validator.check(CsvFile('any_file.csv'))
+        assert not res.ok
 
     def test_with_single_violation(self, model, raw_csv):
         raw_csv.return_value = [
             'col1,col2',
             'a,a',
         ]
-        validator = PydanticValidator(model)
+        validator = PydanticValidator(model, line_limit=1000)
         res = validator.check(CsvFile('any_file.csv'))
         assert not res.ok
         assert res.messages == [
@@ -192,7 +213,7 @@ class TestPydanticValidator:
             'col1,col2,col3',
             'a,1.1,a',
         ]
-        validator = PydanticValidator(model2)
+        validator = PydanticValidator(model2, line_limit=1000)
         res = validator.check(CsvFile('any_file.csv'))
         assert not res.ok
         assert res.messages == [
@@ -217,7 +238,7 @@ class TestPydanticValidator:
                 SchemaSpec(
                     type='file',
                     details=':'.join([fname, 'Model'])
-                )
+                ),
             )
 
         raw_csv.return_value = [
@@ -241,7 +262,7 @@ class TestPydanticValidator:
             'col1,col2',
             'a',
         ]
-        validator = PydanticValidator(model)
+        validator = PydanticValidator(model, line_limit=1000)
         res = validator.check(CsvFile('any_file.csv'))
         assert not res.ok
         assert res.messages == [
@@ -268,7 +289,7 @@ class TestPydanticValidator:
             '3,0',
         ]
 
-        validator = PydanticValidator(Model)
+        validator = PydanticValidator(Model, line_limit=1000)
         res = validator.check(CsvFile('any_file.csv'))
 
         assert not res.ok
