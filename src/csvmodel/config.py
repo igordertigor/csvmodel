@@ -6,7 +6,7 @@ from .types import SchemaSpec
 
 
 class Config:
-    def __init__(self, cfgfile: Optional[TextIOBase]):
+    def __init__(self, cfgfile: Optional[TextIOBase] = None):
         self.parser = ConfigParser(default_section='csvmodel')
         self.parser['csvmodel'] = {
             'validator': 'jsonschema',
